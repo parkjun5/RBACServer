@@ -60,7 +60,6 @@ public class AccountRoleService {
                     String uri = entry.getKey();
                     Map<String, Set<AccountRole>> value = new HashMap<>();
                     value.put(classBaseURI + uri, accountRoleSet);
-
                     if (METHOD_URI_ACCOUNT_ROLE_MAP.containsKey(methodName)) {
                         METHOD_URI_ACCOUNT_ROLE_MAP.get(methodName).putAll(value);
                     } else {

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional(readOnly = true)
 public class LoginService {
 
     private static final String LOGIN_FAIL_MESSAGE = "아이디 혹은 비밀번호가 잘못되었습니다.";

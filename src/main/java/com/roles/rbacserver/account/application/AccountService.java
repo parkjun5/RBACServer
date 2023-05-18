@@ -18,7 +18,6 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 @Service
-@Transactional(readOnly = true)
 public class AccountService {
 
     public static final String ACCOUNT_NOT_FOUND_MESSAGE = "아이디가 존재하지 않습니다.";
