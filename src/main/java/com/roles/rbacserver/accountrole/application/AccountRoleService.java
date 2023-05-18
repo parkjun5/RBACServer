@@ -1,12 +1,13 @@
-package com.roles.rbacserver.rolebaseaccess.application;
+package com.roles.rbacserver.accountrole.application;
 
-import com.roles.rbacserver.account.application.dto.AccountRole;
-import com.roles.rbacserver.rolebaseaccess.application.annotation.NeedAccountRole;
+import com.roles.rbacserver.accountrole.AccountRole;
+import com.roles.rbacserver.accountrole.application.annotation.NeedAccountRole;
+import com.roles.rbacserver.common.exception.NoSuchURIException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import org.springframework.util.AntPathMatcher;
-import org.springframework.util.PathMatcher;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,46 +22,47 @@ import java.util.stream.Collectors;
 @Service
 public class AccountRoleService {
     private final ApplicationContext applicationContext;
-    protected static final Map<String, Map<String, Set<AccountRole>>> URI_ACCOUNT_ROLE_MAP = new HashMap<>();
-    private final PathMatcher pathMatcher;
+    protected static final Map<String, Map<String, Set<AccountRole>>> METHOD_URI_ACCOUNT_ROLE_MAP = new HashMap<>();
 
     public AccountRoleService(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
-        this.pathMatcher = new AntPathMatcher();
     }
 
     @FunctionalInterface
     private interface AccountRoleOperator {
-        void apply(Method method, List<String> classBaseURIs, Map<String, String> methodURIAndRoleMap);
+        void apply(Method method, List<String> classBaseURIs);
     }
 
+    @EventListener(ContextRefreshedEvent.class)
     public void initURIAndAccountRole() {
-        processControllers((method, classBaseURIs, methodURIAndRoleMap) -> {
+        processControllers((method, classBaseURIs) -> {
+            Map<String, String> methodURIAndRoleMap = extractMethodURIAndRole(method, ".+");
+            Set<AccountRole> accountRoleSet = EnumSet.of(AccountRole.ALL);
             if (method.isAnnotationPresent(NeedAccountRole.class)) {
-                Set<AccountRole> accountRoleSet = Arrays.stream(method.getAnnotation(NeedAccountRole.class).value())
+                accountRoleSet = Arrays.stream(method.getAnnotation(NeedAccountRole.class).value())
                         .collect(Collectors.toSet());
+            }
+            for (String classBaseURI : classBaseURIs) {
+                for (Map.Entry<String, String> entry : methodURIAndRoleMap.entrySet()) {
+                    String methodName = entry.getValue();
+                    String uri = entry.getKey();
+                    Map<String, Set<AccountRole>> value = new HashMap<>();
+                    value.put(classBaseURI + uri, accountRoleSet);
 
-                for (String classBaseURI : classBaseURIs) {
-                    for (Map.Entry<String, String> entry : methodURIAndRoleMap.entrySet()) {
-                        String methodName = entry.getValue();
-                        String uri = entry.getKey();
-                        Map<String, Set<AccountRole>> value = new HashMap<>();
-                        value.put(classBaseURI + uri, accountRoleSet);
-
-                        if (URI_ACCOUNT_ROLE_MAP.containsKey(methodName)) {
-                            URI_ACCOUNT_ROLE_MAP.get(methodName).putAll(value);
-                        } else {
-                            URI_ACCOUNT_ROLE_MAP.put(methodName, value);
-                        }
+                    if (METHOD_URI_ACCOUNT_ROLE_MAP.containsKey(methodName)) {
+                        METHOD_URI_ACCOUNT_ROLE_MAP.get(methodName).putAll(value);
+                    } else {
+                        METHOD_URI_ACCOUNT_ROLE_MAP.put(methodName, value);
                     }
                 }
             }
         });
     }
 
-    public Set<String> findURIAnnotatedNeedAccountRole() {
-        Set<String> annotatedURIs = new HashSet<>();
-        processControllers((method, classBaseURIs, methodURIAndRoleMap) -> {
+    public List<String> findURIAnnotatedNeedAccountRole() {
+        List<String> annotatedURIs = new ArrayList<>();
+        processControllers((method, classBaseURIs) -> {
+            Map<String, String> methodURIAndRoleMap = extractMethodURIAndRole(method, "**");
             if (method.isAnnotationPresent(NeedAccountRole.class)) {
                 for (String classBaseURI : classBaseURIs) {
                     for (String key : methodURIAndRoleMap.keySet()) {
@@ -73,18 +75,21 @@ public class AccountRoleService {
     }
 
     public Set<AccountRole> getRoleInfoByURI(String method, String uri) {
-        Map<String, Set<AccountRole>> stringSetMap = URI_ACCOUNT_ROLE_MAP.get(method);
-        if (stringSetMap == null) {
+        Map<String, Set<AccountRole>> uriAccountROleMap = METHOD_URI_ACCOUNT_ROLE_MAP.get(method);
+        if (uriAccountROleMap == null) {
             return Collections.singleton(AccountRole.ALL);
         }
 
-        for (Map.Entry<String, Set<AccountRole>> stringSetEntry : stringSetMap.entrySet()) {
-            if (pathMatcher.match(stringSetEntry.getKey(), uri)) {
-                return stringSetEntry.getValue();
-            }
-        }
+        String matchedUri = getBestMatchingPattern(uri, uriAccountROleMap.keySet())
+                .orElseThrow(() -> new NoSuchURIException(uri + "존재하지 않는 uri"));
 
-        return Collections.singleton(AccountRole.ALL);
+        return uriAccountROleMap.get(matchedUri);
+    }
+
+    private static Optional<String> getBestMatchingPattern(String uri, Set<String> patterns) {
+        return patterns.stream()
+                .filter(uri::matches)
+                .max(Comparator.comparingInt(String::length));
     }
 
     private List<String> getClassBaseURIs(RequestMapping classRequestMapping) {
@@ -94,7 +99,7 @@ public class AccountRoleService {
         return new ArrayList<>();
     }
 
-    private Map<String, String> extractMethodURIAndRole(Method method) {
+    private Map<String, String> extractMethodURIAndRole(Method method, String replacement) {
         Map<String, String> urisAndMethod = new HashMap<>();
 
         Annotation[] annotations = method.getDeclaredAnnotations();
@@ -103,7 +108,7 @@ public class AccountRoleService {
                 try {
                     Method valueMethod = annotation.annotationType().getMethod("value");
                     String[] values = (String[]) valueMethod.invoke(annotation);
-                    List<String> uris = extractUrisFromValue(values);
+                    List<String> uris = extractUrisFromValue(values, replacement);
 
                     RequestMethod[] methods = annotation.annotationType().getAnnotation(RequestMapping.class).method();
                     String httpMethod = methods.length > 0 ? methods[0].name() : "";
@@ -129,19 +134,18 @@ public class AccountRoleService {
             List<String> classBaseURIs = getClassBaseURIs(classRequestMapping);
             Method[] methods = restControllerClass.getDeclaredMethods();
             for (Method method : methods) {
-                Map<String, String> methodURIAndRoleMap = extractMethodURIAndRole(method);
-                operator.apply(method, classBaseURIs, methodURIAndRoleMap);
+                operator.apply(method, classBaseURIs);
             }
         }
     }
 
-    private List<String> extractUrisFromValue(String[] values) {
+    private List<String> extractUrisFromValue(String[] values, String replacement) {
         if (values == null || values.length == 0) {
             return Collections.singletonList("");
         }
 
         return Arrays.stream(values)
-                .map(value -> value.replaceAll("\\{[^}]+\\}", "**"))
+                .map(value -> value.replaceAll("\\{[^}]+\\}", replacement))
                 .map(value -> value.startsWith("/") ? value : "/" + value)
                 .toList();
     }

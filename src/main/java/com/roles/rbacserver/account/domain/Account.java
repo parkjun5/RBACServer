@@ -1,12 +1,13 @@
 package com.roles.rbacserver.account.domain;
 
 import com.roles.rbacserver.account.application.dto.AccountCreateRequest;
-import com.roles.rbacserver.account.application.dto.AccountRole;
+import com.roles.rbacserver.accountrole.AccountRole;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.EnumSet;
 import java.util.Set;
 
 import static jakarta.persistence.GenerationType.*;
@@ -33,7 +34,7 @@ public class Account {
     public static Account of(AccountCreateRequest request) {
         Account account = new Account();
         account.name = request.name();
-        account.accountRole = request.accountRoleSet();
+        account.accountRole = EnumSet.copyOf(request.accountRoleSet());
         account.isDeleted = false;
         return account;
     }
@@ -44,5 +45,9 @@ public class Account {
 
     public void deleteAccount() {
         this.isDeleted = true;
+    }
+
+    public void changeAccountRole(Set<AccountRole> accountRoles) {
+        this.accountRole = accountRoles;
     }
 }

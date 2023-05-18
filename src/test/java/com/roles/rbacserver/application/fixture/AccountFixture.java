@@ -2,14 +2,14 @@ package com.roles.rbacserver.application.fixture;
 
 import com.roles.rbacserver.account.application.dto.AccountCreateRequest;
 import com.roles.rbacserver.account.application.dto.AccountResponse;
-import com.roles.rbacserver.account.application.dto.AccountRole;
+import com.roles.rbacserver.accountrole.AccountRole;
 import com.roles.rbacserver.account.domain.Account;
 
-import java.util.Set;
+import java.util.EnumSet;
 
 public class AccountFixture {
 
-    public static final AccountCreateRequest TEST_ACCOUNT_CREATE_REQUEST = new AccountCreateRequest("테스터", "q1w2e3!", Set.of(AccountRole.SYSTEM_ADMIN, AccountRole.NORMAL_USER));
+    public static final AccountCreateRequest TEST_ACCOUNT_CREATE_REQUEST = new AccountCreateRequest("테스터", "q1w2e3!", EnumSet.of(AccountRole.SYSTEM_ADMIN, AccountRole.NORMAL_USER));
 
     public static final Account TEST_ACCOUNT = Account.of(TEST_ACCOUNT_CREATE_REQUEST);
 

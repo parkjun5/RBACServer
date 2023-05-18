@@ -1,12 +1,10 @@
 package com.roles.rbacserver.common.config;
 
-import com.roles.rbacserver.rolebaseaccess.application.AccountRoleService;
-import com.roles.rbacserver.rolebaseaccess.interceptor.RoleBaseAccessInterceptor;
+import com.roles.rbacserver.accountrole.application.AccountRoleService;
+import com.roles.rbacserver.common.interceptor.RoleBaseAccessInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import java.util.List;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -21,9 +19,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        accountRoleFinder.initURIAndAccountRole();
-        List<String> uriAnnotatedNeedAccountRole = accountRoleFinder.findURIAnnotatedNeedAccountRole().stream().toList();
         registry.addInterceptor(roleBaseAccessInterceptor)
-                .addPathPatterns(uriAnnotatedNeedAccountRole);
+                .addPathPatterns(accountRoleFinder.findURIAnnotatedNeedAccountRole());
     }
 }

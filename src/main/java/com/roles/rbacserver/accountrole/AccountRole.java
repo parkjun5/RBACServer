@@ -1,4 +1,4 @@
-package com.roles.rbacserver.account.application.dto;
+package com.roles.rbacserver.accountrole;
 
 public enum AccountRole {
     SYSTEM_ADMIN,

@@ -1,7 +1,7 @@
-package com.roles.rbacserver.rolebaseaccess.application.annotation;
+package com.roles.rbacserver.accountrole.application.annotation;
 
 
-import com.roles.rbacserver.account.application.dto.AccountRole;
+import com.roles.rbacserver.accountrole.AccountRole;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
