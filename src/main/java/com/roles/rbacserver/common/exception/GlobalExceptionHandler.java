@@ -1,6 +1,6 @@
 package com.roles.rbacserver.common.exception;
 
-import com.roles.rbacserver.login.presentation.IllegalTokenException;
+import com.roles.rbacserver.login.exception.IllegalTokenException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

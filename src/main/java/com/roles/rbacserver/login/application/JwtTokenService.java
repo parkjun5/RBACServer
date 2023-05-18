@@ -1,6 +1,6 @@
 package com.roles.rbacserver.login.application;
 
-import com.roles.rbacserver.login.presentation.IllegalTokenException;
+import com.roles.rbacserver.login.exception.IllegalTokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
