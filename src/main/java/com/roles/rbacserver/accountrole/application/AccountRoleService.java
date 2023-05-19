@@ -11,6 +11,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -21,34 +22,26 @@ public class AccountRoleService {
         this.applicationContext = applicationContext;
     }
 
-    public List<String> findURIAnnotatedNeedAccountRole() {
-        List<String> annotatedURIs = new ArrayList<>();
-
+    public List<String> findAnnotatedUris() {
+        List<String> annotatedUris = new ArrayList<>();
         Map<String, Object> restControllers = applicationContext.getBeansWithAnnotation(RestController.class);
 
         for (Object restController : restControllers.values()) {
             Class<?> restControllerClass = restController.getClass();
+            List<String> baseUris = getBaseUris(restControllerClass);
 
-            Method[] methods = restControllerClass.getDeclaredMethods();
-
-            List<String> classBaseURIs = getControllerBaseURIs(restControllerClass.getAnnotation(RequestMapping.class));
-
-            for (Method method : methods) {
+            for (Method method : restControllerClass.getDeclaredMethods()) {
                 if (method.isAnnotationPresent(NeedAccountRole.class)) {
-                    List<String> methodURIs = extractMethodAndURI(method);
-                    for (String classBaseURI : classBaseURIs) {
-                        for (String methodURI : methodURIs) {
-                            annotatedURIs.add(classBaseURI + methodURI);
-                        }
-                    }
+                    annotatedUris.addAll(combineBaseAndMethodUris(baseUris, method));
                 }
             }
         }
 
-        return annotatedURIs;
+        return annotatedUris;
     }
 
-    private List<String> getControllerBaseURIs(RequestMapping classRequestMapping) {
+    private List<String> getBaseUris(Class<?> restControllerClass) {
+        RequestMapping classRequestMapping = restControllerClass.getAnnotation(RequestMapping.class);
         if (classRequestMapping != null && classRequestMapping.value().length > 0) {
             return Arrays.asList(classRequestMapping.value());
         }
@@ -56,30 +49,44 @@ public class AccountRoleService {
         return new ArrayList<>();
     }
 
-    private List<String> extractMethodAndURI(Method method) {
+    private List<String> combineBaseAndMethodUris(List<String> baseUris, Method method) {
+        List<String> combinedUris = new ArrayList<>();
+
+        for (String baseUri : baseUris) {
+            for (String methodUri : extractUrisFromMethod(method)) {
+                combinedUris.add(baseUri + methodUri);
+            }
+        }
+
+        return combinedUris;
+    }
+
+    private List<String> extractUrisFromMethod(Method method) {
         List<String> uris = new ArrayList<>();
 
-        Annotation[] annotations = method.getDeclaredAnnotations();
-
-        for (Annotation annotation : annotations) {
+        for (Annotation annotation : method.getDeclaredAnnotations()) {
             if (annotation.annotationType().isAnnotationPresent(RequestMapping.class)) {
-                try {
-                    Method valueMethod = annotation.annotationType().getMethod("value");
-                    String[] values = (String[]) valueMethod.invoke(annotation);
-
-                    List<String> extractedUris = extractUrisFromValue(values);
-
-                    uris.addAll(extractedUris);
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                    log.error(method.getName() + "에서 URI와 HTTP 메소드 추출 실패", e);
-                }
+                uris.addAll(extractUrisFromAnnotation(annotation));
             }
         }
 
         return uris;
     }
 
-    private List<String> extractUrisFromValue(String[] values) {
+    private List<String> extractUrisFromAnnotation(Annotation annotation) {
+        try {
+            Method valueMethod = annotation.annotationType().getMethod("value");
+            String[] values = (String[]) valueMethod.invoke(annotation);
+
+            return extractUrisFromValues(values);
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            log.error("URI 를 가져오는데 실패하였습니다.", e);
+        }
+
+        return Collections.emptyList();
+    }
+
+    private List<String> extractUrisFromValues(String[] values) {
         if (values == null || values.length == 0) {
             return Collections.singletonList("");
         }

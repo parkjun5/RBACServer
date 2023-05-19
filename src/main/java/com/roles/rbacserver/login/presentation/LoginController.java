@@ -21,6 +21,6 @@ public class LoginController {
     public ResponseEntity<String> login(
             @RequestBody @Valid LoginRequest request
     ) {
-       return ResponseEntity.ok("Authorization: Bearer " + loginService.login(request));
+       return ResponseEntity.ok("Authorization: " + loginService.login(request));
     }
 }

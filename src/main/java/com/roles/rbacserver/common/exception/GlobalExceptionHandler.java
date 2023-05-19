@@ -1,5 +1,6 @@
 package com.roles.rbacserver.common.exception;
 
+import com.roles.rbacserver.common.application.dto.ApiCommonResponse;
 import com.roles.rbacserver.login.exception.IllegalTokenException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,51 +16,39 @@ import java.util.NoSuchElementException;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler
-    public ResponseEntity<ErrorResponse> illegalTokenExceptionHandler(IllegalTokenException e) {
+    public ResponseEntity<ApiCommonResponse> illegalTokenExceptionHandler(IllegalTokenException e) {
         log.error(e.getMessage());
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+        return ApiCommonResponse.of(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler
-    public ResponseEntity<ErrorResponse> noSuchURIExceptionHandler(NoSuchURIException e) {
+    public ResponseEntity<ApiCommonResponse> noSuchURIExceptionHandler(NoSuchURIException e) {
         log.error(e.getMessage());
-        return buildErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
+        return ApiCommonResponse.of(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler
-    public ResponseEntity<ErrorResponse> illegalArgumentExceptionHandler(IllegalArgumentException e) {
+    public ResponseEntity<ApiCommonResponse> illegalArgumentExceptionHandler(IllegalArgumentException e) {
         log.error(e.getMessage());
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+        return ApiCommonResponse.of(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler
-    public ResponseEntity<ErrorResponse> noSuchElementExceptionHandler(NoSuchElementException e) {
+    public ResponseEntity<ApiCommonResponse> noSuchElementExceptionHandler(NoSuchElementException e) {
         log.error(e.getMessage());
-        return buildErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
+        return ApiCommonResponse.of(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler
-    public ResponseEntity<ErrorResponse> businessExceptionHandler(BusinessException e) {
+    public ResponseEntity<ApiCommonResponse> businessExceptionHandler(BusinessException e) {
         log.error(e.getMessage());
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        return ApiCommonResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
     }
 
     @ExceptionHandler
-    public ResponseEntity<ErrorResponse> exceptionHandler(Exception e) {
+    public ResponseEntity<ApiCommonResponse> exceptionHandler(Exception e) {
         log.error(e.getMessage());
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        return ApiCommonResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
     }
 
-
-    private ResponseEntity<ErrorResponse> buildErrorResponse(HttpStatus status, String message) {
-        ErrorResponse errorResponse = new ErrorResponse(status.value(), message, LocalDateTime.now());
-        return ResponseEntity.status(status).body(errorResponse);
-    }
-
-    record ErrorResponse(
-            int statusCode,
-            String message,
-            LocalDateTime timestamp
-    ) {
-    }
 }

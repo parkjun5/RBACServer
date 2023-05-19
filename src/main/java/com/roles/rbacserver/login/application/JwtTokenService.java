@@ -30,12 +30,14 @@ public class JwtTokenService {
     public String generateToken(String name) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiryDate = now.plusHours(EXPIRATION_TIME);
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .setSubject(name)
                 .setIssuedAt(Timestamp.valueOf(now))
                 .setExpiration(Timestamp.valueOf(expiryDate))
                 .signWith(secretKey, SignatureAlgorithm.HS512)
                 .compact();
+
+        return "Bearer " + token;
     }
 
     public boolean validateToken(String jwtToken) {

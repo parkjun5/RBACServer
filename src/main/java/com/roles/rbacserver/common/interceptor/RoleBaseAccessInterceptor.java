@@ -15,8 +15,6 @@ import org.springframework.web.servlet.resource.ResourceHttpRequestHandler;
 import java.util.Collections;
 import java.util.Set;
 
-//TODO: 인터셉터 개선
-// 통합 A,B,C
 
 /**
  * 이 인터셉터는 역할 기반 접근 제어(Role-Based Access Control, RBAC)를 위해 사용됩니다.
@@ -28,7 +26,7 @@ public class RoleBaseAccessInterceptor implements HandlerInterceptor {
     private final JwtTokenService jwtTokenService;
 
     /**
-     * RoleBaseAccessInterceptor의 인스턴스를 생성합니다.
+     * RoleBaseAccessInterceptor 의 인스턴스를 생성합니다.
      *
      * @param accountService     계정 서비스
      * @param jwtTokenService    JWT 토큰 서비스
