@@ -10,8 +10,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.util.EnumSet;
-import java.util.Optional;
 import java.util.Set;
 
 //TODO: 인터셉터 개선
@@ -52,7 +50,7 @@ public class RoleBaseAccessInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         Set<AccountRole> requiredRole = accountRoleService.getRoleInfoByURI(request.getMethod().toUpperCase(), request.getRequestURI());
-        if (requiredRole == null) {
+        if (requiredRole.isEmpty()) {
             return true;
         }
 
@@ -72,16 +70,11 @@ public class RoleBaseAccessInterceptor implements HandlerInterceptor {
 
         String name = jwtTokenService.getNameFromToken(token);
         Set<AccountRole> accountRoles = accountService.findAccountRolesByName(name);
-        requiredRole.stream()
-                .filter(accountRoles::contains)
-                .findAny()
-                .ifPresent(accountRole -> re);
-
-        if (!requiredRole.isEmpty()) {
-            return true;
+        boolean containRole = requiredRole.stream().anyMatch(accountRoles::contains);
+        if (!containRole) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         }
 
-        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-        return false;
+        return containRole;
     }
 }

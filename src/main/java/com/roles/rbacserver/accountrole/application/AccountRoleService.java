@@ -49,7 +49,7 @@ public class AccountRoleService {
     public void initURIAndAccountRole() {
         processRestControllers((method, classBaseURIs) -> {
             Map<String, String> methodURIAndRoleMap = extractMethodURIAndRole(method, ".+");
-            Set<AccountRole> accountRoleSet = EnumSet.of(AccountRole.ALL);
+            Set<AccountRole> accountRoleSet = Collections.emptySet();
             if (method.isAnnotationPresent(NeedAccountRole.class)) {
                 accountRoleSet = Arrays.stream(method.getAnnotation(NeedAccountRole.class).value())
                         .collect(Collectors.toSet());
@@ -100,7 +100,7 @@ public class AccountRoleService {
     public Set<AccountRole> getRoleInfoByURI(String method, String uri) {
         Map<String, Set<AccountRole>> uriAccountROleMap = METHOD_URI_ACCOUNT_ROLE_MAP.get(method);
         if (uriAccountROleMap == null) {
-            return Collections.singleton(AccountRole.ALL);
+            return Collections.emptySet();
         }
 
         String matchedUri = getBestMatchingPattern(uri, uriAccountROleMap.keySet())
