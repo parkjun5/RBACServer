@@ -1,13 +1,13 @@
 # RBAC 서버 
 
 ## 목표 :
-<img width="500" alt="image" src="https://github.com/parkjun5/RBACServer/assets/58926619/7b466677-d8af-4314-bf62-19c90755ac01">
+<img width="781" alt="image" src="img/role_base_access_control.png">
 
 - 유저는 N개의 권한을 가질 수 있다.
 - 접근 권한이 필요한 메소드들과 N개의 권한을 가질 수 있다.
 
-## 유즈케이스 : 
-<img width="500" alt="image" src="https://github.com/parkjun5/RBACServer/assets/58926619/5b149464-d9fc-42a1-81fa-704b250298de">
+## 유즈케이스 :
+<img width="781" alt="image" src="img/use_case.jpg">
 
 ### 인터셉터를 통한 권한 제어
 - HandlerMethod를 통해 uri를 처리할 메소드의 어노테이션에 접근
