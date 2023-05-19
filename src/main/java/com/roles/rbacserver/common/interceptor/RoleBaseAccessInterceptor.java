@@ -2,18 +2,22 @@ package com.roles.rbacserver.common.interceptor;
 
 import com.roles.rbacserver.account.application.AccountService;
 import com.roles.rbacserver.accountrole.AccountRole;
-import com.roles.rbacserver.accountrole.application.AccountRoleService;
+import com.roles.rbacserver.accountrole.application.annotation.NeedAccountRole;
 import com.roles.rbacserver.login.application.JwtTokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.resource.ResourceHttpRequestHandler;
 
+import java.util.Collections;
 import java.util.Set;
 
 //TODO: 인터셉터 개선
 // 통합 A,B,C
+
 /**
  * 이 인터셉터는 역할 기반 접근 제어(Role-Based Access Control, RBAC)를 위해 사용됩니다.
  */
@@ -21,19 +25,16 @@ import java.util.Set;
 public class RoleBaseAccessInterceptor implements HandlerInterceptor {
 
     private final AccountService accountService;
-    private final AccountRoleService accountRoleService;
     private final JwtTokenService jwtTokenService;
 
     /**
      * RoleBaseAccessInterceptor의 인스턴스를 생성합니다.
      *
      * @param accountService     계정 서비스
-     * @param accountRoleService 계정 역할 서비스
      * @param jwtTokenService    JWT 토큰 서비스
      */
-    public RoleBaseAccessInterceptor(AccountService accountService, AccountRoleService accountRoleService, JwtTokenService jwtTokenService) {
+    public RoleBaseAccessInterceptor(AccountService accountService, JwtTokenService jwtTokenService) {
         this.accountService = accountService;
-        this.accountRoleService = accountRoleService;
         this.jwtTokenService = jwtTokenService;
     }
 
@@ -49,8 +50,8 @@ public class RoleBaseAccessInterceptor implements HandlerInterceptor {
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        Set<AccountRole> requiredRole = accountRoleService.getRoleInfoByURI(request.getMethod().toUpperCase(), request.getRequestURI());
-        if (requiredRole.isEmpty()) {
+        boolean hasAnnotation = hasNeedAccountRoleAnnotation(handler);
+        if (!hasAnnotation) {
             return true;
         }
 
@@ -70,11 +71,33 @@ public class RoleBaseAccessInterceptor implements HandlerInterceptor {
 
         String name = jwtTokenService.getNameFromToken(token);
         Set<AccountRole> accountRoles = accountService.findAccountRolesByName(name);
+        Set<AccountRole> requiredRole = getAccountRole(handler);
         boolean containRole = requiredRole.stream().anyMatch(accountRoles::contains);
         if (!containRole) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         }
 
         return containRole;
+    }
+
+    private boolean hasNeedAccountRoleAnnotation(Object handler) {
+        if (handler instanceof ResourceHttpRequestHandler) {
+            return true;
+        }
+
+        if (handler instanceof HandlerMethod handlerMethod) {
+            return handlerMethod.hasMethodAnnotation(NeedAccountRole.class);
+        }
+
+        return false;
+    }
+
+    private Set<AccountRole> getAccountRole(Object handler) {
+        if (handler instanceof HandlerMethod handlerMethod) {
+            NeedAccountRole needAccountRole = handlerMethod.getMethodAnnotation(NeedAccountRole.class);
+            return needAccountRole != null ? Set.of(needAccountRole.value()) : Collections.emptySet();
+        }
+
+        return Collections.emptySet();
     }
 }
